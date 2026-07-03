@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Bakudan Preview Sandbox</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        background-color: #0f172a;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="preview-canvas"></canvas>
+    <script type="module">
+      import { Scene } from '@vectojs/core';
+
+      // Dynamically size canvas to physical preview iframe viewport
+      const canvas = document.getElementById('preview-canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const scene = new Scene(canvas);
+      scene.start();
+
+      window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        scene.markDirty();
+      });
+
+      window.addEventListener('message', (e) => {
+        const { type, code } = e.data;
+        if (type === 'RUN_CODE') {
+          // Clear previous user entities
+          scene.clear();
+          try {
+            // Evaluates and instantiates user's custom barrage class
+            const BarrageClass = new Function(`return ${code}`)();
+            const barrage = new BarrageClass();
+            scene.add(barrage);
+            scene.markDirty();
+          } catch (err) {
+            // Forward compilation/runtime crash stacks back to parent terminal logs
+            window.parent.postMessage(
+              { type: 'RUNTIME_ERROR', error: err.stack || err.message || String(err) },
+              '*',
+            );
+          }
+        }
+      });
+
+      // Double-handshake: signal parent editor that sandbox is loaded and ready
+      window.parent.postMessage({ type: 'SANDBOX_READY' }, '*');
+    </script>
+  </body>
+</html>

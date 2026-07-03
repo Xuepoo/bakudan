@@ -100,8 +100,14 @@ describe('PlaygroundView Sandbox & Vim Mode Toggle Tests', () => {
     const view = new PlaygroundView();
     const viewAny = view as any;
 
-    // Simulate mount so keydown handles it
-    viewAny.parent = {};
+    // Mock parent and scene, then mount sandbox
+    viewAny.parent = {
+      scene: {
+        canvas: { width: 800, height: 600 },
+        markDirty: vi.fn(),
+      }
+    };
+    view.mountSandbox();
 
     expect(viewAny.editorState.getMode()).toBe('INSERT');
 
@@ -122,8 +128,14 @@ describe('PlaygroundView Sandbox & Vim Mode Toggle Tests', () => {
     const view = new PlaygroundView();
     const viewAny = view as any;
 
-    // Simulate mount
-    viewAny.parent = {};
+    // Mock parent and scene, then mount sandbox
+    viewAny.parent = {
+      scene: {
+        canvas: { width: 800, height: 600 },
+        markDirty: vi.fn(),
+      }
+    };
+    view.mountSandbox();
 
     // Turn Vim Mode ON
     viewAny.vimToggle.emit('change', { checked: true });
@@ -153,8 +165,18 @@ describe('PlaygroundView Sandbox & Vim Mode Toggle Tests', () => {
     const viewAny = view as any;
 
     expect(viewAny.isSandboxReady).toBe(false);
+    expect(viewAny.queue.length).toBe(0); // Queuing only starts after mounting
 
-    // Initial runCode is called in constructor, should be queued
+    // Mock parent and scene, then mount sandbox
+    viewAny.parent = {
+      scene: {
+        canvas: { width: 800, height: 600 },
+        markDirty: vi.fn(),
+      }
+    };
+    view.mountSandbox();
+
+    // Initial runCode is called in mountSandbox, should be queued
     expect(viewAny.queue.length).toBe(1);
 
     // Simulate SANDBOX_READY message event
@@ -176,6 +198,15 @@ describe('PlaygroundView Sandbox & Vim Mode Toggle Tests', () => {
   test('should render terminal error on RUNTIME_ERROR', () => {
     const view = new PlaygroundView();
     const viewAny = view as any;
+
+    // Mock parent and scene, then mount sandbox
+    viewAny.parent = {
+      scene: {
+        canvas: { width: 800, height: 600 },
+        markDirty: vi.fn(),
+      }
+    };
+    view.mountSandbox();
 
     // Simulate RUNTIME_ERROR message event
     messageListener({

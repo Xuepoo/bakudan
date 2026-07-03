@@ -58,6 +58,7 @@ export class PlaygroundView extends UIComponent {
     this.editorEntity.setPosition(0, controlBarHeight);
     this.editorEntity.width = 400;
     this.editorEntity.height = 400;
+    this.editorEntity.updateFromState();
     this.add(this.editorEntity);
 
     // Terminal Card (Bottom 400px height 160px)
@@ -88,20 +89,6 @@ export class PlaygroundView extends UIComponent {
 
     this.add(this.terminalCard);
 
-    // Create Sandbox Iframe
-    if (typeof document !== 'undefined' && document.body) {
-      this.iframe = document.createElement('iframe');
-      this.iframe.src = '/preview.html';
-      this.iframe.style.position = 'absolute';
-      this.iframe.style.top = '0';
-      this.iframe.style.left = '400px';
-      this.iframe.style.width = '400px';
-      this.iframe.style.height = '600px';
-      this.iframe.style.border = 'none';
-      this.iframe.style.backgroundColor = '#0f172a';
-      document.body.appendChild(this.iframe);
-    }
-
     // Handshake and error listeners
     this.handleMessage = (e: MessageEvent) => {
       const { type, error } = e.data;
@@ -115,15 +102,6 @@ export class PlaygroundView extends UIComponent {
         this.renderTerminalError(error);
       }
     };
-    window.addEventListener('message', this.handleMessage);
-
-    // Watch for editor state changes
-    this.editorState.onDidChangeBuffer(() => {
-      this.runCode(this.editorState.getText());
-    });
-
-    // Run initial code
-    this.runCode(this.editorState.getText());
 
     // Window keydown listener
     this.handleKeyDown = (e: KeyboardEvent) => {
@@ -158,7 +136,64 @@ export class PlaygroundView extends UIComponent {
       this.editorState.handleKey(feedKey);
     };
 
+    // Watch for editor state changes
+    this.editorState.onDidChangeBuffer(() => {
+      this.runCode(this.editorState.getText());
+    });
+  }
+
+  public mountSandbox() {
+    this.unmountSandbox();
+
+    // Dynamically size workspace container size based on display size
+    if (this.scene) {
+      this.width = this.scene.canvas.width;
+      this.height = this.scene.canvas.height;
+    }
+
+    const halfWidth = Math.floor(this.width / 2);
+    
+    // Resize inner layout elements dynamically
+    this.editorEntity.width = halfWidth;
+    this.editorEntity.height = this.height - 40 - 160; // Subtract control bar and terminal heights
+    this.editorEntity.updateFromState();
+
+    this.terminalCard.width = halfWidth;
+    this.terminalCard.setPosition(0, 40 + this.editorEntity.height);
+    this.terminalText.maxWidth = halfWidth - 20;
+
+    // Create Sandbox Iframe on active view focus
+    if (typeof document !== 'undefined' && document.body) {
+      this.iframe = document.createElement('iframe');
+      this.iframe.src = '/preview.html';
+      this.iframe.style.position = 'absolute';
+      this.iframe.style.top = '0';
+      this.iframe.style.left = `${halfWidth}px`;
+      this.iframe.style.width = `${halfWidth}px`;
+      this.iframe.style.height = `${this.height}px`;
+      this.iframe.style.border = 'none';
+      this.iframe.style.backgroundColor = '#0f172a';
+      document.body.appendChild(this.iframe);
+    }
+
+    window.addEventListener('message', this.handleMessage);
     window.addEventListener('keydown', this.handleKeyDown);
+
+    // Trigger compile initial code
+    this.runCode(this.editorState.getText());
+  }
+
+  public unmountSandbox() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('message', this.handleMessage);
+      window.removeEventListener('keydown', this.handleKeyDown);
+    }
+    if (this.iframe) {
+      this.iframe.remove();
+      this.iframe = null;
+    }
+    this.isSandboxReady = false;
+    this.queue = [];
   }
 
   private runCode(code: string) {
@@ -192,13 +227,7 @@ export class PlaygroundView extends UIComponent {
   }
 
   public destroy(): void {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('message', this.handleMessage);
-      window.removeEventListener('keydown', this.handleKeyDown);
-    }
-    if (this.iframe) {
-      this.iframe.remove();
-    }
+    this.unmountSandbox();
     super.destroy();
   }
 }

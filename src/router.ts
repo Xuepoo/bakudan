@@ -28,9 +28,11 @@ export class Router {
   private handleRoute(path: string) {
     this.scene.remove(this.showcaseView);
     this.scene.remove(this.playgroundView);
+    this.playgroundView.unmountSandbox();
 
     if (path === '/playground') {
       this.scene.add(this.playgroundView);
+      this.playgroundView.mountSandbox();
     } else {
       this.scene.add(this.showcaseView);
     }
@@ -41,5 +43,6 @@ export class Router {
     window.removeEventListener('popstate', this.popstateHandler);
     this.scene.remove(this.showcaseView);
     this.scene.remove(this.playgroundView);
+    this.playgroundView.unmountSandbox();
   }
 }
