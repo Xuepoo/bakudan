@@ -1,0 +1,11 @@
+name = "bakudan"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bakudan-db"
+database_id = "00000000-0000-0000-0000-000000000000" # Placeholder to be updated on creation
+
+[[r2_buckets]]
+binding = "FONTS_BUCKET"
+bucket_name = "bakudan-fonts"
