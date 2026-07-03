@@ -24,25 +24,98 @@ export class PlaygroundView extends UIComponent {
     const defaultCode = `class CustomBarrage extends Entity {
   constructor() {
     super();
-    this.x = 300;
-    this.y = 200;
+    this.particles = [];
+    const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    for (let i = 0; i < 10; i++) {
+      const radius = 15 + Math.random() * 15;
+      this.particles.push({
+        x: 50 + Math.random() * 250,
+        y: 50 + Math.random() * 250,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
+        radius: radius,
+        mass: radius * radius,
+        color: colors[i % colors.length]
+      });
+    }
   }
   update(dt) {
-    this.x -= 0.1 * dt;
-    if (this.x < -100) {
-      this.x = 400;
+    const width = 400;
+    const height = 400;
+
+    for (const p of this.particles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      if (p.x - p.radius < 0) {
+        p.x = p.radius;
+        p.vx = -p.vx;
+      } else if (p.x + p.radius > width) {
+        p.x = width - p.radius;
+        p.vx = -p.vx;
+      }
+
+      if (p.y - p.radius < 0) {
+        p.y = p.radius;
+        p.vy = -p.vy;
+      } else if (p.y + p.radius > height) {
+        p.y = height - p.radius;
+        p.vy = -p.vy;
+      }
+    }
+
+    for (let i = 0; i < this.particles.length; i++) {
+      for (let j = i + 1; j < this.particles.length; j++) {
+        const p1 = this.particles[i];
+        const p2 = this.particles[j];
+
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = p1.radius + p2.radius;
+
+        if (dist < minDist) {
+          const overlap = minDist - dist;
+          const nx = dx / (dist || 1);
+          const ny = dy / (dist || 1);
+
+          const totalMass = p1.mass + p2.mass;
+          p1.x -= nx * overlap * (p2.mass / totalMass);
+          p1.y -= ny * overlap * (p2.mass / totalMass);
+          p2.x += nx * overlap * (p1.mass / totalMass);
+          p2.y += ny * overlap * (p1.mass / totalMass);
+
+          const kx = p1.vx - p2.vx;
+          const ky = p1.vy - p2.vy;
+          const p = 2 * (nx * kx + ny * ky) / totalMass;
+
+          p1.vx -= p * p2.mass * nx;
+          p1.vy -= p * p2.mass * ny;
+          p2.vx += p * p1.mass * nx;
+          p2.vy += p * p1.mass * ny;
+        }
+      }
     }
   }
   render(renderer) {
     const ctx = renderer.ctx;
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, 25, 0, Math.PI * 2);
-    ctx.fill();
+    for (const p of this.particles) {
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+      ctx.shadowBlur = 8;
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('Bakudan', this.x - 22, this.y + 4);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('BAKUDAN', p.x, p.y + 3);
+    }
   }
 }`;
     this.editorState = new VemEditorState(defaultCode);
@@ -183,6 +256,7 @@ export class PlaygroundView extends UIComponent {
       // Create Sandbox Iframe on active view focus (Placed on top)
       if (typeof document !== 'undefined' && document.body) {
         this.iframe = document.createElement('iframe');
+        this.iframe.sandbox = 'allow-scripts';
         this.iframe.src = '/preview.html';
         this.iframe.style.position = 'absolute';
         this.iframe.style.top = '0';
@@ -216,6 +290,7 @@ export class PlaygroundView extends UIComponent {
       // Create Sandbox Iframe on active view focus (Placed on the left side)
       if (typeof document !== 'undefined' && document.body) {
         this.iframe = document.createElement('iframe');
+        this.iframe.sandbox = 'allow-scripts';
         this.iframe.src = '/preview.html';
         this.iframe.style.position = 'absolute';
         this.iframe.style.top = '0';
@@ -230,8 +305,8 @@ export class PlaygroundView extends UIComponent {
 
     window.addEventListener('message', this.handleMessage);
 
-    // Trigger compile initial code
-    this.runCode(this.editorState.getText());
+    // Queue initial code to run once the sandbox is READY
+    this.queue = [this.editorState.getText()];
   }
 
   public unmountSandbox() {
@@ -247,12 +322,17 @@ export class PlaygroundView extends UIComponent {
       this.iframe = null;
     }
     this.isSandboxReady = false;
-    this.queue = [];
   }
 
   private runCode(code: string) {
     if (!this.isSandboxReady) {
-      this.queue.push(code);
+      this.queue = [code];
+      this.terminalText.setText('Compiling...');
+      this.terminalText.color = '#cbd5e1';
+      this.scene?.markDirty();
+      if (!this.iframe) {
+        this.mountSandbox();
+      }
       return;
     }
 

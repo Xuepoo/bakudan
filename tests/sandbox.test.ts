@@ -117,8 +117,9 @@ describe('PlaygroundView Sandbox & Vim Mode Toggle Tests', () => {
       preventDefault: vi.fn(),
     } as any;
 
-    expect(keydownListener).toBeDefined();
-    keydownListener(escapeEvent);
+    viewAny.editorEntity.emit('keydown', {
+      nativeEvent: escapeEvent,
+    });
 
     expect(escapeEvent.preventDefault).toHaveBeenCalled();
     expect(viewAny.editorState.getMode()).toBe('INSERT'); // Should stay in INSERT
@@ -147,7 +148,9 @@ describe('PlaygroundView Sandbox & Vim Mode Toggle Tests', () => {
       key: 'i',
       preventDefault: vi.fn(),
     } as any;
-    keydownListener(iEvent);
+    viewAny.editorEntity.emit('keydown', {
+      nativeEvent: iEvent,
+    });
     expect(viewAny.editorState.getMode()).toBe('INSERT');
 
     // Now Escape should switch back to NORMAL mode because Vim Mode is ON
@@ -155,7 +158,9 @@ describe('PlaygroundView Sandbox & Vim Mode Toggle Tests', () => {
       key: 'Escape',
       preventDefault: vi.fn(),
     } as any;
-    keydownListener(escapeEvent);
+    viewAny.editorEntity.emit('keydown', {
+      nativeEvent: escapeEvent,
+    });
 
     expect(viewAny.editorState.getMode()).toBe('NORMAL');
   });
