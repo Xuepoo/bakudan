@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Local wrangler config and storage
+.wrangler/
+.dev.vars
+
+# Build output
+dist/
+build/
+.cache/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
