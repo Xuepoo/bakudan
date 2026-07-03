@@ -1,13 +1,21 @@
-import { UIComponent, Card, Text } from '@vectojs/ui';
+import { UIComponent } from '@vectojs/ui';
+import { VemEditorState } from '@vemjs/core';
+import { VemEditorEntity } from '@vemjs/renderer-vecto';
 
 export class PlaygroundView extends UIComponent {
+  private editorState: VemEditorState;
+  private editorEntity: VemEditorEntity;
+
   constructor() {
     super();
     this.width = 800;
     this.height = 600;
 
-    const card = new Card({ width: 780, height: 580, bg: '#0f172a' });
-    card.add(new Text('Playground View Stub', { color: '#ffffff', font: '24px sans-serif' }));
-    this.add(card.setPosition(10, 10));
+    const defaultCode = `// Edit your custom barrage here!\nclass CustomBarrage extends Entity {\n  update(dt) {\n    this.x -= 50 * dt;\n  }\n}`;
+    this.editorState = new VemEditorState(defaultCode);
+    this.editorEntity = new VemEditorEntity(this.editorState);
+    this.editorEntity.setPosition(0, 0);
+
+    this.add(this.editorEntity);
   }
 }
