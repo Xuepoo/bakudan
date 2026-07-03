@@ -4,7 +4,7 @@ pages_build_output_dir = "./dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "bakudan-db"
-database_id = "00000000-0000-0000-0000-000000000000" # Placeholder to be updated on creation
+database_id = "d3f78df1-e72a-4f35-a05b-3eb23b6bbf38"
 
 [[r2_buckets]]
 binding = "FONTS_BUCKET"
