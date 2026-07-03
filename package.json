@@ -1,0 +1,30 @@
+{
+  "name": "bakudan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "oxlint src/",
+    "format": "prettier --write src/ websites/",
+    "knip": "knip"
+  },
+  "dependencies": {
+    "@vectojs/core": "workspace:*",
+    "@vectojs/ui": "workspace:*",
+    "@vemjs/core": "workspace:*",
+    "@vemjs/renderer-vecto": "workspace:*",
+    "marked": "^18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "vitest": "^1.6.0",
+    "oxlint": "^0.3.0",
+    "prettier": "^3.2.5",
+    "knip": "^5.16.0"
+  }
+}
