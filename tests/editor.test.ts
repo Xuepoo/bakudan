@@ -70,9 +70,9 @@ describe('PlaygroundView & VemEditorEntity Integration', () => {
 
     // Check initial layout configuration and entity position
     expect(viewAny.editorEntity.x).toBe(0);
-    expect(viewAny.editorEntity.y).toBe(0);
-    expect(viewAny.editorEntity.width).toBe(800);
-    expect(viewAny.editorEntity.height).toBe(600);
+    expect(viewAny.editorEntity.y).toBe(40);
+    expect(viewAny.editorEntity.width).toBe(400);
+    expect(viewAny.editorEntity.height).toBe(400);
   });
 
   test('should assert editor state buffer sync and modifications', () => {

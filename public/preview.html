@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <body>
+    <canvas id="preview-canvas" width="400" height="600"></canvas>
+    <script type="module">
+      import { Scene } from '@vectojs/core';
+      const scene = new Scene(document.getElementById('preview-canvas'));
+      scene.start();
+
+      window.addEventListener('message', (e) => {
+        const { type, code } = e.data;
+        if (type === 'RUN_CODE') {
+          scene.clear();
+          try {
+            const BarrageClass = new Function(`return ${code}`)();
+            scene.add(new BarrageClass('Hello'));
+          } catch (err) {
+            window.parent.postMessage(
+              { type: 'RUNTIME_ERROR', error: err.stack || err.message || String(err) },
+              '*',
+            );
+          }
+        }
+      });
+
+      // Send Handshake
+      window.parent.postMessage({ type: 'SANDBOX_READY' }, '*');
+    </script>
+  </body>
+</html>
