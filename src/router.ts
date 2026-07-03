@@ -4,8 +4,8 @@ import { PlaygroundView } from './views/PlaygroundView';
 
 export class Router {
   private scene: Scene;
-  private showcaseView: ShowcaseView;
-  private playgroundView: PlaygroundView;
+  public showcaseView: ShowcaseView;
+  public playgroundView: PlaygroundView;
   private popstateHandler: () => void;
 
   constructor(scene: Scene) {

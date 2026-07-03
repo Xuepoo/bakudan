@@ -228,35 +228,76 @@ export class PlaygroundView extends UIComponent {
       this.height = this.scene.canvas.height;
     }
 
-    const halfWidth = Math.floor(this.width / 2);
-    
-    // Resize control bar
-    this.controlBarCard.width = halfWidth;
-    this.controlBarCard.setPosition(halfWidth, 0);
-    this.liveIndicator.setPosition(halfWidth - 100, 15);
+    const isMobile = this.width < 768;
 
-    // Resize inner layout elements dynamically (Shift to the right side)
-    this.editorEntity.width = halfWidth;
-    this.editorEntity.height = this.height - 40 - 160;
-    this.editorEntity.setPosition(halfWidth, 40);
-    this.editorEntity.updateFromState();
+    if (isMobile) {
+      // Vertical layout (Top: Preview sandbox, Bottom: Controls & Editor)
+      const previewHeight = Math.floor(this.height * 0.4);
+      const editorHeight = this.height - previewHeight - 40 - 100; // Remaining space for editor
 
-    this.terminalCard.width = halfWidth;
-    this.terminalCard.setPosition(halfWidth, 40 + this.editorEntity.height);
-    this.terminalText.maxWidth = halfWidth - 20;
+      // Resize control bar
+      this.controlBarCard.width = this.width;
+      this.controlBarCard.setPosition(0, previewHeight);
+      this.liveIndicator.setPosition(this.width - 100, 15);
 
-    // Create Sandbox Iframe on active view focus (Placed on the left side)
-    if (typeof document !== 'undefined' && document.body) {
-      this.iframe = document.createElement('iframe');
-      this.iframe.src = '/preview.html';
-      this.iframe.style.position = 'absolute';
-      this.iframe.style.top = '0';
-      this.iframe.style.left = '0';
-      this.iframe.style.width = `${halfWidth}px`;
-      this.iframe.style.height = `${this.height}px`;
-      this.iframe.style.border = 'none';
-      this.iframe.style.backgroundColor = '#0f172a';
-      document.body.appendChild(this.iframe);
+      // Resize Editor (positioned under controlBar)
+      this.editorEntity.width = this.width;
+      this.editorEntity.height = editorHeight;
+      this.editorEntity.setPosition(0, previewHeight + 40);
+      this.editorEntity.updateFromState();
+
+      // Resize Terminal (positioned under Editor)
+      this.terminalCard.width = this.width;
+      this.terminalCard.height = 100;
+      this.terminalCard.setPosition(0, previewHeight + 40 + editorHeight);
+      this.terminalText.maxWidth = this.width - 20;
+
+      // Create Sandbox Iframe on active view focus (Placed on top)
+      if (typeof document !== 'undefined' && document.body) {
+        this.iframe = document.createElement('iframe');
+        this.iframe.src = '/preview.html';
+        this.iframe.style.position = 'absolute';
+        this.iframe.style.top = '0';
+        this.iframe.style.left = '0';
+        this.iframe.style.width = `${this.width}px`;
+        this.iframe.style.height = `${previewHeight}px`;
+        this.iframe.style.border = 'none';
+        this.iframe.style.backgroundColor = '#0f172a';
+        document.body.appendChild(this.iframe);
+      }
+    } else {
+      // Horizontal layout (Left: Preview sandbox, Right: Controls & Editor)
+      const halfWidth = Math.floor(this.width / 2);
+      
+      // Resize control bar
+      this.controlBarCard.width = halfWidth;
+      this.controlBarCard.setPosition(halfWidth, 0);
+      this.liveIndicator.setPosition(halfWidth - 100, 15);
+
+      // Resize inner layout elements dynamically (Shift to the right side)
+      this.editorEntity.width = halfWidth;
+      this.editorEntity.height = this.height - 40 - 160;
+      this.editorEntity.setPosition(halfWidth, 40);
+      this.editorEntity.updateFromState();
+
+      this.terminalCard.width = halfWidth;
+      this.terminalCard.height = 160;
+      this.terminalCard.setPosition(halfWidth, 40 + this.editorEntity.height);
+      this.terminalText.maxWidth = halfWidth - 20;
+
+      // Create Sandbox Iframe on active view focus (Placed on the left side)
+      if (typeof document !== 'undefined' && document.body) {
+        this.iframe = document.createElement('iframe');
+        this.iframe.src = '/preview.html';
+        this.iframe.style.position = 'absolute';
+        this.iframe.style.top = '0';
+        this.iframe.style.left = '0';
+        this.iframe.style.width = `${halfWidth}px`;
+        this.iframe.style.height = `${this.height}px`;
+        this.iframe.style.border = 'none';
+        this.iframe.style.backgroundColor = '#0f172a';
+        document.body.appendChild(this.iframe);
+      }
     }
 
     window.addEventListener('message', this.handleMessage);
