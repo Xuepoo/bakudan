@@ -14,7 +14,6 @@ export class PlaygroundView extends UIComponent {
   private queue: string[] = [];
   private vimModeEnabled = false;
 
-  private handleKeyDown: (e: KeyboardEvent) => void;
   private handleMessage: (e: MessageEvent) => void;
 
   constructor() {
@@ -69,11 +68,14 @@ export class PlaygroundView extends UIComponent {
     this.liveIndicator.setPosition(300, 15);
     this.controlBarCard.add(this.liveIndicator);
 
+    (this.editorState as any).vimModeEnabled = false;
+
     this.vimToggle = new Toggle({
       label: 'Vim Mode',
       checked: false,
       onChange: (checked) => {
         this.vimModeEnabled = checked;
+        (this.editorState as any).vimModeEnabled = checked;
         if (!checked) {
           this.editorState.setMode('INSERT');
         } else {
@@ -132,80 +134,6 @@ export class PlaygroundView extends UIComponent {
       } else if (type === 'RUNTIME_ERROR') {
         this.renderTerminalError(error);
       }
-    };
-
-    // Window keydown listener
-    this.handleKeyDown = (e: KeyboardEvent) => {
-      if (!this.parent) return;
-
-      const key = e.key;
-
-      // Handle Arrow key navigation manually in default (non-Vim) mode to avoid Vem core blocking
-      if (!this.vimModeEnabled && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
-        e.preventDefault();
-        const cursor = this.editorState.getCursor();
-        const buffer = this.editorState.getBuffer();
-        const lineCount = buffer.getLineCount();
-
-        if (key === 'ArrowLeft') {
-          if (cursor.character > 0) {
-            cursor.character--;
-          } else if (cursor.line > 0) {
-            cursor.line--;
-            cursor.character = buffer.getLine(cursor.line).length;
-          }
-        } else if (key === 'ArrowRight') {
-          const currentLineText = buffer.getLine(cursor.line);
-          if (cursor.character < currentLineText.length) {
-            cursor.character++;
-          } else if (cursor.line < lineCount - 1) {
-            cursor.line++;
-            cursor.character = 0;
-          }
-        } else if (key === 'ArrowUp') {
-          if (cursor.line > 0) {
-            cursor.line--;
-            const prevLineLen = buffer.getLine(cursor.line).length;
-            cursor.character = Math.min(cursor.character, prevLineLen);
-          }
-        } else if (key === 'ArrowDown') {
-          if (cursor.line < lineCount - 1) {
-            cursor.line++;
-            const nextLineLen = buffer.getLine(cursor.line).length;
-            cursor.character = Math.min(cursor.character, nextLineLen);
-          }
-        }
-
-        this.editorEntity.updateFromState();
-        this.scene?.markDirty();
-        return;
-      }
-
-      if (key === 'Escape' && !this.vimModeEnabled) {
-        e.preventDefault();
-        return;
-      }
-
-      let feedKey = key;
-      if (e.ctrlKey) {
-        if (key === 'r') feedKey = '<C-r>';
-        else if (key === 'v') feedKey = '<C-v>';
-      }
-
-      const keysToPrevent = [
-        'ArrowUp',
-        'ArrowDown',
-        'ArrowLeft',
-        'ArrowRight',
-        'Tab',
-        'Backspace',
-        ' ',
-      ];
-      if (keysToPrevent.includes(key) || (e.ctrlKey && (key === 'r' || key === 'v'))) {
-        e.preventDefault();
-      }
-
-      this.editorState.handleKey(feedKey);
     };
 
     // Watch for editor state changes (with 300ms compile debouncing for silky typing)
@@ -301,7 +229,6 @@ export class PlaygroundView extends UIComponent {
     }
 
     window.addEventListener('message', this.handleMessage);
-    window.addEventListener('keydown', this.handleKeyDown);
 
     // Trigger compile initial code
     this.runCode(this.editorState.getText());
@@ -314,7 +241,6 @@ export class PlaygroundView extends UIComponent {
     }
     if (typeof window !== 'undefined') {
       window.removeEventListener('message', this.handleMessage);
-      window.removeEventListener('keydown', this.handleKeyDown);
     }
     if (this.iframe) {
       this.iframe.remove();
