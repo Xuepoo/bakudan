@@ -230,4 +230,8 @@ export class PlaygroundView extends UIComponent {
     this.unmountSandbox();
     super.destroy();
   }
+
+  public render(renderer: any): void {
+    // Container renders nothing itself
+  }
 }
