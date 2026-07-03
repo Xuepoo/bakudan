@@ -26,23 +26,21 @@ window.addEventListener('DOMContentLoaded', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    // Ensure 1:1 pixel scale globally to prevent coordinate projection misalignment
+    scene.root.scaleX = 1;
+    scene.root.scaleY = 1;
+    scene.root.x = 0;
+    scene.root.y = 0;
+
     const path = window.location.pathname;
     if (path === '/playground') {
-      // Fluid layout: reset root scale & position for full layout
-      scene.root.scaleX = 1;
-      scene.root.scaleY = 1;
-      scene.root.x = 0;
-      scene.root.y = 0;
       if (router.playgroundView) {
         router.playgroundView.mountSandbox();
       }
     } else {
-      // Scale-to-fit layout: center and scale design resolution
-      const scale = Math.min(window.innerWidth / designWidth, window.innerHeight / designHeight);
-      scene.root.scaleX = scale;
-      scene.root.scaleY = scale;
-      scene.root.x = (window.innerWidth - designWidth * scale) / 2;
-      scene.root.y = (window.innerHeight - designHeight * scale) / 2;
+      if (router.showcaseView) {
+        router.showcaseView.updateLayout(window.innerWidth, window.innerHeight);
+      }
     }
 
     scene.markDirty();

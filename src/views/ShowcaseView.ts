@@ -5,19 +5,21 @@ export class ShowcaseView extends UIComponent {
   private headerTitle: Text;
   private headerSubtitle: Text;
   private enterButton: Button;
+  private sectionTitle: Text;
 
-  // Project Showcase Cards
   private cards: Card[] = [];
+  private cardDescs: Text[] = [];
+  private cardTags: Text[] = [];
 
   constructor() {
     super();
-    this.width = 800;
-    this.height = 600;
+    this.width = window.innerWidth || 800;
+    this.height = window.innerHeight || 600;
 
     // Full viewport background container (slate-950 tone)
     this.bgCard = new Card({
-      width: 800,
-      height: 600,
+      width: this.width,
+      height: this.height,
       bg: '#0b0f19', 
       border: 'transparent',
       radius: 0,
@@ -26,17 +28,15 @@ export class ShowcaseView extends UIComponent {
 
     // Modern Header Layout
     this.headerTitle = new Text('Bakudan 幕弹', {
-      font: 'bold 36px sans-serif',
+      font: 'bold 32px sans-serif',
       color: '#ffffff',
     });
-    this.headerTitle.setPosition(30, 40);
     this.bgCard.add(this.headerTitle);
 
     this.headerSubtitle = new Text('A futuristic mathematical barrage community and playground natively built on VectoJS.', {
       font: '14px sans-serif',
       color: '#64748b',
     });
-    this.headerSubtitle.setPosition(30, 90);
     this.bgCard.add(this.headerSubtitle);
 
     // Call-to-action Sandbox Button (emerald green tech aesthetic)
@@ -53,16 +53,14 @@ export class ShowcaseView extends UIComponent {
         }
       },
     });
-    this.enterButton.setPosition(30, 130);
     this.bgCard.add(this.enterButton);
 
     // Decorative Section Title
-    const sectionTitle = new Text('FEATURED TEMPLATES', {
+    this.sectionTitle = new Text('FEATURED TEMPLATES', {
       font: 'bold 11px sans-serif',
       color: '#475569',
     });
-    sectionTitle.setPosition(30, 210);
-    this.bgCard.add(sectionTitle);
+    this.bgCard.add(this.sectionTitle);
 
     // Showcase Cards Configuration
     const cardTemplates = [
@@ -71,24 +69,18 @@ export class ShowcaseView extends UIComponent {
         desc: 'Barrages with elastic boundary bouncing, acceleration fields, and kinetic momentum exchange.',
         tag: 'PHYSICS',
         tagColor: '#38bdf8', // sky-400
-        x: 30,
-        y: 235,
       },
       {
         title: 'Sine-Wave Path Flow',
         desc: 'Elegant mathematical barrages dynamically rippling and text undulating along sine curves.',
         tag: 'MATH',
         tagColor: '#c084fc', // purple-400
-        x: 30,
-        y: 345,
       },
       {
         title: 'Cursor Repulsion Shield',
         desc: 'Highly interactive particle shields reacting dynamically to mouse positions in real-time.',
         tag: 'INTERACTIVE',
         tagColor: '#fb7185', // rose-400
-        x: 30,
-        y: 455,
       },
     ];
 
@@ -100,7 +92,6 @@ export class ShowcaseView extends UIComponent {
         border: '#1f2937',
         radius: 8,
       });
-      templateCard.setPosition(t.x, t.y);
 
       // Title
       const tTitle = new Text(t.title, {
@@ -115,9 +106,11 @@ export class ShowcaseView extends UIComponent {
         font: '13px sans-serif',
         color: '#9ca3af',
         maxWidth: 580,
+        lineHeight: 16,
       });
       tDesc.setPosition(20, 45);
       templateCard.add(tDesc);
+      this.cardDescs.push(tDesc);
 
       // Pill Tag
       const tTag = new Text(`[ ${t.tag} ]`, {
@@ -126,9 +119,61 @@ export class ShowcaseView extends UIComponent {
       });
       tTag.setPosition(630, 23);
       templateCard.add(tTag);
+      this.cardTags.push(tTag);
 
       this.bgCard.add(templateCard);
       this.cards.push(templateCard);
+    }
+
+    // Perform initial layout calculation
+    this.updateLayout(this.width, this.height);
+  }
+
+  public updateLayout(w: number, h: number) {
+    this.width = w;
+    this.height = h;
+
+    this.bgCard.width = w;
+    this.bgCard.height = h;
+
+    // Centered layout max-width 740px with 30px side padding on smaller screens
+    const maxContentWidth = Math.min(740, w - 60);
+    const startX = Math.floor((w - maxContentWidth) / 2);
+
+    this.headerTitle.setPosition(startX, 40);
+    this.headerSubtitle.setPosition(startX, 90);
+    
+    // Position description below title dynamically if wrapping occurs on tiny screens
+    const subtitleY = this.headerTitle.y + 40;
+    this.headerSubtitle.setPosition(startX, subtitleY);
+    this.headerSubtitle.maxWidth = maxContentWidth;
+
+    const buttonY = subtitleY + 45;
+    this.enterButton.setPosition(startX, buttonY);
+
+    const sectionTitleY = buttonY + 70;
+    this.sectionTitle.setPosition(startX, sectionTitleY);
+
+    const isMobile = w < 768;
+    const cardHeight = isMobile ? 120 : 95;
+    const startCardY = sectionTitleY + 25;
+
+    for (let i = 0; i < this.cards.length; i++) {
+      const card = this.cards[i];
+      card.width = maxContentWidth;
+      card.height = cardHeight;
+      card.setPosition(startX, startCardY + i * (cardHeight + 15));
+
+      const descText = this.cardDescs[i];
+      descText.maxWidth = maxContentWidth - 40;
+
+      const tagText = this.cardTags[i];
+      if (isMobile) {
+        // Shift tag below title to prevent overlaying on narrow screens
+        tagText.setPosition(maxContentWidth - 110, 20);
+      } else {
+        tagText.setPosition(maxContentWidth - 110, 20);
+      }
     }
   }
 
