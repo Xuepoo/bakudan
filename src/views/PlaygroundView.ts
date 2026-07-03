@@ -22,21 +22,52 @@ export class PlaygroundView extends UIComponent {
     this.width = 800;
     this.height = 600;
 
-    const defaultCode = `// Edit your custom barrage here!\nclass CustomBarrage extends Entity {\n  update(dt) {\n    this.x -= 50 * dt;\n  }\n}`;
+    const defaultCode = `class CustomBarrage extends Entity {
+  constructor() {
+    super();
+    this.x = 300;
+    this.y = 200;
+  }
+  update(dt) {
+    this.x -= 0.1 * dt;
+    if (this.x < -100) {
+      this.x = 400;
+    }
+  }
+  render(renderer) {
+    const ctx = renderer.ctx;
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('Bakudan', this.x - 22, this.y + 4);
+  }
+}`;
     this.editorState = new VemEditorState(defaultCode);
     this.editorState.setMode('INSERT');
 
-    // Control bar at the top (Left 400px)
+    // Control bar at the top (Right halfWidth)
     const controlBarHeight = 40;
-    const controlBar = new Card({
+    this.controlBarCard = new Card({
       width: 400,
       height: controlBarHeight,
       bg: '#1e293b', // slate-800
       border: '#334155', // slate-700
       radius: 0,
     });
-    controlBar.setPosition(0, 0);
-    this.add(controlBar);
+    this.controlBarCard.setPosition(400, 0);
+    this.add(this.controlBarCard);
+
+    // Live Indicator in Control Bar
+    this.liveIndicator = new Text('● LIVE PREVIEW', {
+      font: 'bold 10px sans-serif',
+      color: '#10b981', // green-500
+    });
+    this.liveIndicator.setPosition(300, 15);
+    this.controlBarCard.add(this.liveIndicator);
 
     this.vimToggle = new Toggle({
       label: 'Vim Mode',
@@ -51,17 +82,16 @@ export class PlaygroundView extends UIComponent {
       },
     });
     this.vimToggle.setPosition(10, 8);
-    controlBar.add(this.vimToggle);
+    this.controlBarCard.add(this.vimToggle);
 
-    // Editor Entity (Middle 400px height 400px)
+    // Editor Entity (Right halfWidth height 400px)
     this.editorEntity = new VemEditorEntity(this.editorState);
-    this.editorEntity.setPosition(0, controlBarHeight);
+    this.editorEntity.setPosition(400, controlBarHeight);
     this.editorEntity.width = 400;
     this.editorEntity.height = 400;
-    this.editorEntity.updateFromState();
     this.add(this.editorEntity);
 
-    // Terminal Card (Bottom 400px height 160px)
+    // Terminal Card (Right halfWidth height 160px)
     this.terminalCard = new Card({
       width: 400,
       height: 160,
@@ -69,7 +99,7 @@ export class PlaygroundView extends UIComponent {
       border: '#334155', // slate-800
       radius: 0,
     });
-    this.terminalCard.setPosition(0, controlBarHeight + 400);
+    this.terminalCard.setPosition(400, controlBarHeight + 400);
 
     this.terminalTitle = new Text('TERMINAL LOGS', {
       font: 'bold 11px sans-serif',
@@ -96,6 +126,7 @@ export class PlaygroundView extends UIComponent {
         this.isSandboxReady = true;
         this.terminalText.setText('Sandbox connected.');
         this.terminalText.color = '#10b981'; // emerald green
+        this.liveIndicator.color = '#10b981';
         this.scene?.markDirty();
         this.flushQueue();
       } else if (type === 'RUNTIME_ERROR') {
@@ -108,6 +139,47 @@ export class PlaygroundView extends UIComponent {
       if (!this.parent) return;
 
       const key = e.key;
+
+      // Handle Arrow key navigation manually in default (non-Vim) mode to avoid Vem core blocking
+      if (!this.vimModeEnabled && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+        e.preventDefault();
+        const cursor = this.editorState.getCursor();
+        const buffer = this.editorState.getBuffer();
+        const lineCount = buffer.getLineCount();
+
+        if (key === 'ArrowLeft') {
+          if (cursor.character > 0) {
+            cursor.character--;
+          } else if (cursor.line > 0) {
+            cursor.line--;
+            cursor.character = buffer.getLine(cursor.line).length;
+          }
+        } else if (key === 'ArrowRight') {
+          const currentLineText = buffer.getLine(cursor.line);
+          if (cursor.character < currentLineText.length) {
+            cursor.character++;
+          } else if (cursor.line < lineCount - 1) {
+            cursor.line++;
+            cursor.character = 0;
+          }
+        } else if (key === 'ArrowUp') {
+          if (cursor.line > 0) {
+            cursor.line--;
+            const prevLineLen = buffer.getLine(cursor.line).length;
+            cursor.character = Math.min(cursor.character, prevLineLen);
+          }
+        } else if (key === 'ArrowDown') {
+          if (cursor.line < lineCount - 1) {
+            cursor.line++;
+            const nextLineLen = buffer.getLine(cursor.line).length;
+            cursor.character = Math.min(cursor.character, nextLineLen);
+          }
+        }
+
+        this.editorEntity.updateFromState();
+        this.scene?.markDirty();
+        return;
+      }
 
       if (key === 'Escape' && !this.vimModeEnabled) {
         e.preventDefault();
@@ -136,9 +208,14 @@ export class PlaygroundView extends UIComponent {
       this.editorState.handleKey(feedKey);
     };
 
-    // Watch for editor state changes
+    // Watch for editor state changes (with 300ms compile debouncing for silky typing)
     this.editorState.onDidChangeBuffer(() => {
-      this.runCode(this.editorState.getText());
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
+      }
+      this.debounceTimer = setTimeout(() => {
+        this.runCode(this.editorState.getText());
+      }, 300);
     });
   }
 
@@ -153,22 +230,28 @@ export class PlaygroundView extends UIComponent {
 
     const halfWidth = Math.floor(this.width / 2);
     
-    // Resize inner layout elements dynamically
+    // Resize control bar
+    this.controlBarCard.width = halfWidth;
+    this.controlBarCard.setPosition(halfWidth, 0);
+    this.liveIndicator.setPosition(halfWidth - 100, 15);
+
+    // Resize inner layout elements dynamically (Shift to the right side)
     this.editorEntity.width = halfWidth;
-    this.editorEntity.height = this.height - 40 - 160; // Subtract control bar and terminal heights
+    this.editorEntity.height = this.height - 40 - 160;
+    this.editorEntity.setPosition(halfWidth, 40);
     this.editorEntity.updateFromState();
 
     this.terminalCard.width = halfWidth;
-    this.terminalCard.setPosition(0, 40 + this.editorEntity.height);
+    this.terminalCard.setPosition(halfWidth, 40 + this.editorEntity.height);
     this.terminalText.maxWidth = halfWidth - 20;
 
-    // Create Sandbox Iframe on active view focus
+    // Create Sandbox Iframe on active view focus (Placed on the left side)
     if (typeof document !== 'undefined' && document.body) {
       this.iframe = document.createElement('iframe');
       this.iframe.src = '/preview.html';
       this.iframe.style.position = 'absolute';
       this.iframe.style.top = '0';
-      this.iframe.style.left = `${halfWidth}px`;
+      this.iframe.style.left = '0';
       this.iframe.style.width = `${halfWidth}px`;
       this.iframe.style.height = `${this.height}px`;
       this.iframe.style.border = 'none';
@@ -184,6 +267,10 @@ export class PlaygroundView extends UIComponent {
   }
 
   public unmountSandbox() {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
     if (typeof window !== 'undefined') {
       window.removeEventListener('message', this.handleMessage);
       window.removeEventListener('keydown', this.handleKeyDown);
@@ -223,6 +310,7 @@ export class PlaygroundView extends UIComponent {
   private renderTerminalError(error: string) {
     this.terminalText.setText(error);
     this.terminalText.color = '#ef4444';
+    this.liveIndicator.color = '#ef4444'; // Red indicator on compilation failure
     this.scene?.markDirty();
   }
 

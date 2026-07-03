@@ -69,7 +69,7 @@ describe('PlaygroundView & VemEditorEntity Integration', () => {
     expect(viewAny.editorEntity).toBeInstanceOf(VemEditorEntity);
 
     // Check initial layout configuration and entity position
-    expect(viewAny.editorEntity.x).toBe(0);
+    expect(viewAny.editorEntity.x).toBe(400);
     expect(viewAny.editorEntity.y).toBe(40);
     expect(viewAny.editorEntity.width).toBe(400);
     expect(viewAny.editorEntity.height).toBe(400);

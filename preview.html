@@ -23,7 +23,8 @@
   <body>
     <canvas id="preview-canvas"></canvas>
     <script type="module">
-      import { Scene } from '@vectojs/core';
+      import { Scene, Entity } from '@vectojs/core';
+      window.Entity = Entity;
 
       // Dynamically size canvas to physical preview iframe viewport
       const canvas = document.getElementById('preview-canvas');
@@ -42,11 +43,15 @@
       window.addEventListener('message', (e) => {
         const { type, code } = e.data;
         if (type === 'RUN_CODE') {
-          // Clear previous user entities
-          scene.clear();
+          // Properly clear previous user entities from root
+          const children = [...scene.root.children];
+          for (const child of children) {
+            scene.root.remove(child);
+          }
           try {
             // Evaluates and instantiates user's custom barrage class
-            const BarrageClass = new Function(`return ${code}`)();
+            const cleanCode = code.replace(/\/\/.*$/gm, '');
+            const BarrageClass = new Function(`return (${cleanCode})`)();
             const barrage = new BarrageClass();
             scene.add(barrage);
             scene.markDirty();
